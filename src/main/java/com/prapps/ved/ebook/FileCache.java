@@ -16,7 +16,7 @@ public class FileCache {
     private static final String TAG = FileCache.class.getName();
     private static final String EXTN = ".dat";
 
-    public static <T> T readObject(Context ctx, String code, String fname , Class<T> clazz) throws IOException, ClassNotFoundException {
+    public static <T> T readObject(Context ctx, String code, String fname , Class<T> clazz) throws VedException {
         File file = new File(ctx.getCacheDir().getAbsolutePath() + "/" + code + "/" + fname + EXTN);
         return read(file, clazz);
     }
@@ -28,28 +28,38 @@ public class FileCache {
             bookDir.mkdir();
         }
         File file = new File(bookDir.getAbsolutePath() + File.separator + fname + EXTN);
+        write(file, object);
+    }
+
+    private static <T> T read(File file, Class<T> clazz) throws VedException {
+        FileInputStream is = null;
         try {
-            write(file, object);
+            is = new FileInputStream(file);
+            ObjectInputStream ois = new ObjectInputStream(is);
+            T instance = clazz.cast(ois.readObject());
+            Log.d(TAG, file+" : content read successfully");
+            ois.close();
+            return instance;
         } catch (IOException e) {
+            e.printStackTrace();
+            throw new VedException(e);
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
             throw new VedException(e);
         }
     }
 
-    private static <T> T read(File file, Class<T> clazz) throws IOException, ClassNotFoundException {
-        FileInputStream is = new FileInputStream(file);
-        ObjectInputStream ois = new ObjectInputStream(is);
-        T instance = clazz.cast(ois.readObject());
-        Log.d(TAG, file+" : content read successfully");
-        ois.close();
-        return instance;
-    }
-
-    private static void write(File file, Object object) throws IOException {
-        FileOutputStream os = new FileOutputStream(file);
-        ObjectOutputStream fOut = new ObjectOutputStream(os);
-        fOut.writeObject(object);
-        Log.d(TAG, file+" : content written successfully");
-        fOut.close();
+    private static void write(File file, Object object) throws VedException {
+        FileOutputStream os = null;
+        try {
+            os = new FileOutputStream(file);
+            ObjectOutputStream fOut = new ObjectOutputStream(os);
+            fOut.writeObject(object);
+            Log.d(TAG, file+" : content written successfully");
+            fOut.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new VedException(e);
+        }
     }
 }

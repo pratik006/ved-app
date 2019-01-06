@@ -86,7 +86,7 @@ public class MainActivity extends AbstractRecyclerActivity<Book, BooksAdapter> {
             String fname = "books";
             try {
                 books = FileCache.readObject(getBaseContext(), null, fname, List.class);
-            } catch (IOException | ClassNotFoundException e) {
+            } catch (VedException e) {
                 //e.printStackTrace();
                 try {
                     books = RestConnector.getBooks();

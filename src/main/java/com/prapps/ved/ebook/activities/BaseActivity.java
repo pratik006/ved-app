@@ -5,8 +5,6 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
-import com.prapps.ved.dto.ScriptType;
-
 import java.util.Collections;
 import java.util.Set;
 
@@ -14,9 +12,10 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     public static final String SHARED_PREF = "sharedPrefs";
     public static final String PRIMARY_SCRIPT = "primaryLang";
+    public static final String PRIMARY_SCRIPT_VALUE = "primaryLangValue";
     public static final String COMMENTATORS = "commentators";
 
-    protected ScriptType primaryScript;
+    protected String primaryScript;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

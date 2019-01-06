@@ -6,17 +6,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
-import com.prapps.ved.dto.ScriptType;
-import com.prapps.ved.ebook.FileCache;
 import com.prapps.ved.ebook.R;
 import com.prapps.ved.ebook.activities.adapter.SutraAdapter;
 import com.prapps.ved.ebook.exception.VedException;
 import com.prapps.ved.ebook.rest.RestConnector;
 
-import java.io.IOException;
 import java.util.List;
 
-public class SutraActivity extends AbstractRecyclerActivity {
+public class SutraActivity extends AbstractRecyclerActivity<String, SutraAdapter> {
 
     private int chapterNo;
     private String chapterName;
@@ -42,6 +39,7 @@ public class SutraActivity extends AbstractRecyclerActivity {
                     Intent intent = new Intent(me, SutraDetailActivity.class);
                     intent.putExtras(getIntent());
                     intent.putExtra("sutraNo", position+1);
+                    intent.putExtra("sutras", list.size());
                     startActivity(intent);
                 }
 
@@ -60,24 +58,21 @@ public class SutraActivity extends AbstractRecyclerActivity {
 
         @Override
         protected Void doInBackground(String... args) {
-            List<String> sutras = null;
-            primaryScript = ScriptType.getByLabel(getSharedPref(code, PRIMARY_SCRIPT));
-            String fname = "sutras_" + chapterNo +"_"+ primaryScript.getCode();
+            primaryScript = getSharedPref(code, PRIMARY_SCRIPT);
+            String fname = "sutras_" + chapterNo +"_"+ primaryScript;
             try {
-                sutras = FileCache.readObject(getBaseContext(), code, fname, List.class);
-                updateUI(sutras);
-            } catch (IOException |ClassNotFoundException e) {
+                list = readObject(fname, List.class);
+                updateUI(list);
+            } catch (VedException e) {
                 e.printStackTrace();
                 try {
-                    sutras = RestConnector.getSutras(code, primaryScript.getCode(), chapterNo);
-                    Log.d("SutraActivity", "sutras: " + sutras);
-                    updateUI(sutras);
-                    FileCache.writeObject(getBaseContext(), code, fname, sutras);
+                    list = RestConnector.getSutras(code, primaryScript, chapterNo);
+                    Log.d("SutraActivity", "sutras: " + list);
+                    updateUI(list);
+                    writeObjectAsync(fname, list);
                 } catch (VedException e1) {
                     e1.printStackTrace();
                 }
-            } catch (VedException e) {
-                e.printStackTrace();
             }
             return null;
         }

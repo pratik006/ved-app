@@ -4,13 +4,12 @@ import android.util.Log;
 
 import com.prapps.ved.dto.Book;
 import com.prapps.ved.dto.Chapter;
-import com.prapps.ved.dto.Language;
+import com.prapps.ved.dto.KeyValue;
 import com.prapps.ved.ebook.exception.VedException;
 
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import us.monoid.json.JSONArray;
@@ -23,22 +22,20 @@ public class RestConnector {
 
     private static final String BASE_URL = "https://vedsangraha-187514.firebaseio.com/ved/";
     private static final String AVAILABLE_SCRIPTS_URL = BASE_URL + "gita/availableLanguages.json";
+    private static final String AVAILABLE_COMMENTATORS_URL = BASE_URL + "gita/availableCommentaries.json";
     private static final String BOOKS_URL = BASE_URL + "books.json";
     private static final String SUTRA_URL = BASE_URL + "{0}/sutras/{1}/{2}.json";
-    private static final String COMMENTARY_URL = BASE_URL + "{0}/commentaries/{1}/as/{2}/{3}.json";
+    private static final String COMMENTARY_URL = BASE_URL + "{0}/commentaries/{1}/{2}/{3}/{4}.json";
     private static Resty r = new Resty();
 
-    public static List<Language> getScripts() throws VedException {
-        List<Language> scripts;
+    public static List<KeyValue<String>> getScripts(String code) throws VedException {
+        List<KeyValue<String>> scripts;
         try {
             JSONArray arr = r.json(AVAILABLE_SCRIPTS_URL).array();
             scripts = new ArrayList<>(arr.length());
             for (int i=0;i<arr.length(); i++) {
                 JSONObject obj = arr.getJSONObject(i);
-                Language lang = new Language();
-                lang.setCode(obj.getString("code"));
-                lang.setName(obj.getString("name"));
-                scripts.add(lang);
+                scripts.add(new KeyValue(obj.getString("code"), obj.getString("name")));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -48,7 +45,27 @@ public class RestConnector {
             throw new VedException(e);
         }
 
-        return Collections.emptyList();
+        return scripts;
+    }
+
+    public static List<KeyValue<String>> getCommentaries(String code) throws VedException {
+        List<KeyValue<String>> commentaries;
+        try {
+            JSONArray arr = r.json(AVAILABLE_COMMENTATORS_URL).array();
+            commentaries = new ArrayList<>(arr.length());
+            for (int i=0;i<arr.length(); i++) {
+                JSONObject obj = arr.getJSONObject(i);
+                commentaries.add(new KeyValue(obj.getString("code"), obj.getString("commentator")));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new VedException(e);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            throw new VedException(e);
+        }
+
+        return commentaries;
     }
 
     public static List<Book> getBooks() throws IOException, JSONException {
@@ -118,8 +135,8 @@ public class RestConnector {
         return sutras;
     }
 
-    public static String getCommentary(String code, int chapterNo, int sutraNo, String commentator) throws VedException {
-        String finalUrl = MessageFormat.format(COMMENTARY_URL, code, commentator, chapterNo, sutraNo);
+    public static String getCommentary(String code, String lang, int chapterNo, int sutraNo, String commentator) throws VedException {
+        String finalUrl = MessageFormat.format(COMMENTARY_URL, code, commentator, lang, chapterNo, sutraNo);
         try {
             return r.text(finalUrl).toString();
         } catch (IOException e) {
@@ -139,6 +156,7 @@ public class RestConnector {
     }
 
     public static void main(String[] args) throws VedException {
-        System.out.println(getCommentary("gita", 1,1,"DrSSankaranarayan"));
+        //System.out.println(getCommentary("gita", "dv",1,1,"DrSSankaranarayan"));
+        System.out.println(getCommentaries("gita"));
     }
 }

@@ -3,7 +3,6 @@ package com.prapps.ved.ebook.activities;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
@@ -13,9 +12,10 @@ import android.widget.CheckedTextView;
 import android.widget.Spinner;
 
 import com.prapps.ved.dto.KeyValue;
-import com.prapps.ved.dto.ScriptType;
 import com.prapps.ved.ebook.R;
 import com.prapps.ved.ebook.activities.adapter.AvailableCommentatorsAdapter;
+import com.prapps.ved.ebook.exception.VedException;
+import com.prapps.ved.ebook.rest.RestConnector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,34 +23,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SettingsActivity extends AbstractRecyclerActivity<String, AvailableCommentatorsAdapter> {
+public class SettingsActivity extends AbstractRecyclerActivity<KeyValue<String>, AvailableCommentatorsAdapter> {
 
-    private List<KeyValue<String>> commentators = Arrays.asList(
-            new KeyValue<String>("", "Dr S Sankaranarayan"),
-            new KeyValue<String>("", "Shri Purohit Swami"),
-            new KeyValue<String>("", "Sri Abhinav Gupta"),
-            new KeyValue<String>("", "Sri Anandgiri"),
-            new KeyValue<String>("", "Sri Dhanpati"),
-            new KeyValue<String>("", "Sri Harikrishnadas Goenka"),
-            new KeyValue<String>("", "Sri Jayatritha"),
-            new KeyValue<String>("", "Sri Madhavacharya"),
-            new KeyValue<String>("", "Sri Madhusudan Saraswati"),
-            new KeyValue<String>("", "Sri Neelkanth"),
-            new KeyValue<String>("", "Sri Purushottamji"),
-            new KeyValue<String>("", "Sri Ramanuja"),
-            new KeyValue<String>("", "Sri Shankaracharya"),
-            new KeyValue<String>("", "Sri Sri Dhara Swami"),
-            new KeyValue<String>("", "Sri Vallabhacharya"),
-            new KeyValue<String>("", "Sri Vedantadeshikacharya Venkatanatha"),
-            new KeyValue<String>("", "Swami Adidevananda"),
-            new KeyValue<String>("", "Swami Chinmayananda"),
-            new KeyValue<String>("", "Swami Gambirananda"),
-            new KeyValue<String>("", "Swami Ramsukhdas"),
-            new KeyValue<String>("", "Swami Sivananda"),
-            new KeyValue<String>("", "Swami Tejomayananda")
-    );
     private Set<Integer> selectedCommentatorIndices = new HashSet<>();
     private Set<String> selectedCommentators = new HashSet<>();
+    private List<KeyValue<String>> scripts;
 
     public SettingsActivity() {
         super(AvailableCommentatorsAdapter.class, R.layout.activity_settings, R.id.availableCommentatorsListView);
@@ -62,32 +39,28 @@ public class SettingsActivity extends AbstractRecyclerActivity<String, Available
         setTitle(name+" -> Settings");
 
         selectedCommentators = getSharedPrefSet(code, COMMENTATORS);
-        Log.d(getTag(), "retrieved selectedCommentators: "+selectedCommentators);
-        for (String value : selectedCommentators) {
-            int ctr = 0;
-            for (KeyValue<String> kv : commentators) {
-                //Log.d("Compare", "Compare: "+value+"..."+kv.getValue());
-                if (value.equalsIgnoreCase(kv.getValue())) {
-                    selectedCommentatorIndices.add(ctr);
-                }
-                ctr++;
-            }
-        }
+        debug("retrieved selectedCommentators: "+selectedCommentators);
 
         Button btnNext = findViewById(R.id.btnNext);
         btnNext.setOnClickListener(evt -> {
             String code = getIntent().getStringExtra("code");
             Spinner mySpinner = (Spinner) findViewById(R.id.primaryLanguage);
             String textVal = String.valueOf(mySpinner.getSelectedItem());
-            saveSharedPref(code, PRIMARY_SCRIPT, textVal);
+
+            for (KeyValue<String> kv : scripts) {
+                debug("textVal::"+textVal+"  "+kv.getValue()+"  "+kv.getKey()+"  "+kv.getValue());
+                if (textVal.equalsIgnoreCase(kv.getValue())) {
+                    saveSharedPref(code, PRIMARY_SCRIPT, kv.getKey());
+                    saveSharedPref(code, PRIMARY_SCRIPT_VALUE, kv.getValue());
+                    break;
+                }
+            }
+
             Set<String> strSelectedCommentators = new HashSet<>(selectedCommentatorIndices.size());
             for (int i : selectedCommentatorIndices) {
-                strSelectedCommentators.add(commentators.get(i).getValue());
+                strSelectedCommentators.add(list.get(i).getKey());
             }
             saveSharedPrefSet(code, COMMENTATORS, strSelectedCommentators);
-            //saveSharedPref(code, COMMENTATORS, strSelectedCommentators);
-            System.out.println("selectedCommentators: " + strSelectedCommentators);
-
             Intent intent = new Intent(me, ChaptersActivity.class);
             intent.putExtras(getIntent());
             startActivity(intent);
@@ -121,40 +94,66 @@ public class SettingsActivity extends AbstractRecyclerActivity<String, Available
     public class RetrieveBooksTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... activities) {
-            Runnable task = () -> {
-                AvailableCommentatorsAdapter adapter1 = new AvailableCommentatorsAdapter(toCodeList(), selectedCommentatorIndices);
-                adapter1.setSelectedCommentators(selectedCommentatorIndices);
-                System.out.println("commentators.size(): "+commentators.size());
-                RecyclerView listView = findViewById(R.id.availableCommentatorsListView);
-                listView.setAdapter(adapter1);
-                adapter1.notifyDataSetChanged();
-            };
-            handler.post(task);
+            try {
+                list = RestConnector.getCommentaries(code);
+                for (String value : selectedCommentators) {
+                    int ctr = 0;
+                    for (KeyValue<String> kv : list) {
+                        if (value.equalsIgnoreCase(kv.getKey())) {
+                            selectedCommentatorIndices.add(ctr);
+                        }
+                        ctr++;
+                    }
+                }
 
-            String[] items = new String[ScriptType.values().length];
-            ScriptType.getLabels().toArray(items);
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(me, android.R.layout.simple_spinner_dropdown_item, items);
-            task = () -> {
-                Spinner dropdown = findViewById(R.id.primaryLanguage);
-                dropdown.setAdapter(adapter);
-                adapter.notifyDataSetChanged();
-            };
-            handler.post(task);
-
-
+                Runnable task = () -> {
+                    adapter = new AvailableCommentatorsAdapter(toCodeList(), selectedCommentatorIndices);
+                    RecyclerView listView = findViewById(R.id.availableCommentatorsListView);
+                    listView.setAdapter(adapter);
+                    adapter.notifyDataSetChanged();
+                };
+                handler.post(task);
 
 
+                try {
+                    scripts = RestConnector.getScripts(code);
+                    String[] items = new String[scripts.size()];
+                    int ctr = 0;
+                    int selIndex = 0;
+                    for (KeyValue<String> kv : scripts) {
+                        items[ctr] = kv.getValue();
+                        if (primaryScript != null && primaryScript.equalsIgnoreCase(kv.getKey())) {
+                            selIndex = ctr;
+                        }
+                        ctr++;
+                    }
+
+                    ArrayAdapter<String> adapter2 = new ArrayAdapter<>(me, android.R.layout.simple_spinner_dropdown_item, items);
+                    final int selectedIndex = selIndex;
+                    Runnable task2 = () -> {
+                        Spinner dropdown = findViewById(R.id.primaryLanguage);
+                        dropdown.setAdapter(adapter2);
+                        dropdown.setSelection(selectedIndex);
+                        adapter2.notifyDataSetChanged();
+                    };
+                    handler.post(task2);
+                } catch (VedException e) {
+                    e.printStackTrace();
+                }
+            } catch (VedException e) {
+                e.printStackTrace();
+            }
 
             return null;
         }
     }
 
     private List<String> toCodeList() {
-        List<String> list = new ArrayList<>(commentators.size());
-        for (KeyValue<String> kv : commentators) {
-            list.add(kv.getValue());
+        List<String> list2 = new ArrayList<>(list.size());
+        for (KeyValue<String> kv : list) {
+            list2.add(kv.getValue());
         }
 
-        return list;
+        return list2;
     }
 }

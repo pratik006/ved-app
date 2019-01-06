@@ -2,7 +2,6 @@ package com.prapps.ved.ebook.activities.adapter;
 
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,10 +23,6 @@ public class AvailableCommentatorsAdapter extends RecyclerView.Adapter<Available
 
     public AvailableCommentatorsAdapter(List<String> availableCommentators, Set<Integer> selectedCommentators) {
         this.availableCommentators = availableCommentators;
-        this.selectedCommentators = selectedCommentators;
-    }
-
-    public void setSelectedCommentators(Set<Integer> selectedCommentators) {
         this.selectedCommentators = selectedCommentators;
     }
 

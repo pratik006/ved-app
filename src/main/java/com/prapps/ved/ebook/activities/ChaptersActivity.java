@@ -7,14 +7,12 @@ import android.util.Log;
 import android.view.View;
 
 import com.prapps.ved.dto.Chapter;
-import com.prapps.ved.dto.ScriptType;
 import com.prapps.ved.ebook.FileCache;
 import com.prapps.ved.ebook.R;
 import com.prapps.ved.ebook.activities.adapter.ChapterAdapter;
 import com.prapps.ved.ebook.exception.VedException;
 import com.prapps.ved.ebook.rest.RestConnector;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -31,7 +29,7 @@ public class ChaptersActivity extends AbstractRecyclerActivity<Chapter, ChapterA
         super.onCreate(savedInstanceState);
         setTitle(this.name);
 
-        primaryScript = ScriptType.getByLabel(getSharedPref(code, PRIMARY_SCRIPT));
+        primaryScript = getSharedPref(code, PRIMARY_SCRIPT);
         commentators = getSharedPrefSet(code, COMMENTATORS);
         if (primaryScript == null) {
             Intent intent = new Intent(me, SettingsActivity.class);
@@ -69,8 +67,8 @@ public class ChaptersActivity extends AbstractRecyclerActivity<Chapter, ChapterA
             String fname = "chapter_list";
             try {
                 list = FileCache.readObject(getBaseContext(), code, fname, List.class);
-            } catch (IOException | ClassNotFoundException e) {
-                //e.printStackTrace();
+            } catch (VedException e) {
+                e.printStackTrace();
                 try {
                     list = RestConnector.getBook(code);
                     Log.d("ChaptersActivity", "book: " + list);
